@@ -1,0 +1,12 @@
+# .NET ve Node build dosyaları
+bin/
+obj/
+node_modules/
+dist/
+build/
+.vscode/
+.env
+.env.local
+.DS_Store
+*.user
+*.suo
