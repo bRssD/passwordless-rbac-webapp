@@ -1,132 +1,143 @@
-# Passwordless RBAC Web App
-A small reference application built during a 1-month internship to learn end-to-end delivery: **design → build → test → containerize → publish**.  
-The app demonstrates **passwordless sign-in via Authenticator (TOTP)** and a **minimal RBAC** model (`admin` / `viewer`).
 
-> Owner: Can Çopur  
-> Intern: **Barış Demirer (bRssD)** — <bardemirer1903@hotmail.com>
+# 🔐 Passwordless RBAC Web App
 
-## ✨ Goals
-- **Passwordless authentication** using a 6-digit rotating Authenticator code (RFC 6238 TOTP)
-- **Role-based access control (RBAC)** with two roles: `admin` and `viewer`
-- **Admin UI** for basic user management (create, activate/deactivate, reset authenticator, issue recovery codes)
-- **Profile page** for the signed-in user
-- **Dockerized stack**: API, UI, PostgreSQL via Docker Compose; images pushed to Docker Hub
+Modern web uygulamaları için güvenli, hızlı ve kullanıcı dostu bir kimlik doğrulama sistemi.  
+Bu proje, **passwordless MFA (TOTP + QR Code)** tabanlı giriş ve **RBAC (Role-Based Access Control)** yapısını içerir.
 
-_Not included in MVP:_ SSO/IdP, WebAuthn/Passkeys, SMS/phone, complex permission matrices, refresh tokens.
+> ✅ **Hiç parola yok!**  
+> ✅ **Google Authenticator / Microsoft Authenticator** ile giriş  
+> ✅ **Admin panel, rol yönetimi, MFA reset, recovery codes**  
+> ✅ **Docker destekli tam deploy**
 
-## 🧱 Architecture
-api/ → ASP.NET Core (.NET 8) REST API  
-ui/ → React + TypeScript SPA  
-infra/ → Docker Compose & deployment docs  
-DB → PostgreSQL  
-Auth → TOTP (Authenticator), recovery codes  
-Tokens → Short-lived access tokens (in-memory on client in MVP)
+---
 
-## 🛠 Tech Stack
-- **Backend:** ASP.NET Core (.NET 8), EF Core, Npgsql, OtpNet, QRCoder  
-- **Frontend:** React 18, TypeScript, React Router  
-- **Database:** PostgreSQL 16  
-- **Container:** Docker, Docker Compose  
-- **VCS:** Git + GitHub (@bRssD)
+## 🚀 Features (Özellikler)
 
-## 🚀 Quick Start (Local Development)
+| Özellik | Açıklama |
+|---|---|
+TOTP-tabanlı passwordless login | ✅ Parola yok, QR ile MFA setup  
+JWT Authentication | ✅ Access Token + Role Claims  
+RBAC | ✅ Admin / Viewer yetkilendirme  
+Admin Panel | ✅ Kullanıcı listeleme, rol değiştirme  
+MFA Reset | ✅ Yeni secret + QR + recovery codes  
+Recovery Codes | ✅ TOTP bozulursa yedek login  
+User Delete | ✅ Admin tarafında silme  
+Docker Compose | ✅ API + React + PostgreSQL  
+First User = Admin | ✅ Otomatik bootstrap  
 
-### Prerequisites
-- .NET 8 SDK  
-- Node.js (LTS) & npm  
-- Docker Desktop (with WSL2 on Windows)  
-- Git
+---
 
-Check:
-```bash
-dotnet --version
-node -v
-npm -v
-docker --version
-git --version
+## 🧠 Tech Stack
+
+| Teknoloji | Açıklama |
+|---|---|
+**Backend** | .NET 8 Web API  
+**Frontend** | React + Vite + TypeScript  
+**Auth** | JWT + TOTP (Otp.NET) + QRCode  
+**DB** | PostgreSQL  
+**ORM** | Entity Framework Core  
+**Container** | Docker + Compose  
+
+---
+
+## 📌 System Architecture
+
+```
+┌────────────┐       JWT       ┌────────────────┐
+│ React UI   │ ─────────────→ │ .NET 8 Web API │
+└────────────┘                 └───────┬────────┘
+         ▲                            │ EF Core
+         │ QR + Codes                 ▼
+         └──────────────   PostgreSQL DB
 ```
 
-### 1) Clone
+---
+
+## 🏁 Neden Passwordless?
+
+✔ Parola yok = Phishing riski yok  
+✔ Kullanıcı tarafında ekstra yük yok  
+✔ Kurumsal MFA standardı  
+✔ Modern IAM yaklaşımı (Okta/Auth0 benzeri)
+
+---
+
+## ▶️ Projeyi Çalıştırma
+
+### **1️⃣ Clone**
 ```bash
 git clone https://github.com/bRssD/passwordless-rbac-webapp.git
 cd passwordless-rbac-webapp
 ```
 
-### 2) Run API locally
+### **2️⃣ Docker ile Başlat**
 ```bash
-cd api/PasswordlessRbacApi
-$Env:ASPNETCORE_URLS="http://localhost:5000"
-dotnet run
-```
-Test: http://localhost:5000/health → should return "OK"
-
-### 3) Run UI locally
-```bash
-cd ui/passwordless-ui
-npm start
-```
-UI runs at: http://localhost:3000
-
-## 🐳 Run Everything via Docker Compose
-```bash
-cd infra
 docker compose up --build
 ```
-Services:  
-- API → http://localhost:5000  
-- UI → http://localhost:3000  
-- DB → localhost:5432 (user: app / password: app123 / db: passwordlessdb)
 
-## 🔐 Environment Variables
-**Backend**
-```bash
-ASPNETCORE_URLS=http://+:5000
-ConnectionStrings__Default=Host=db;Database=passwordlessdb;Username=app;Password=app123
-BOOTSTRAP_CODE=change-me-1st-admin
-CORS__AllowedOrigin=http://localhost:3000
-```
-**Frontend**
-```bash
-REACT_APP_API_BASE=http://localhost:5000
-```
+### 🚀 Uygulama Endpoints
 
-## 👤 Passwordless Flow
-1. **Bootstrap first admin:** When no users exist → enter `BOOTSTRAP_CODE` → scan QR in Authenticator → confirm with 6-digit code.  
-2. **Sign-in:** Enter email → enter 6-digit code → access granted.  
-3. **Recovery:** Single-use recovery codes are generated during enrollment/reset; admin can reset user authenticators.
+| Uygulama | URL |
+|---|---|
+Frontend | http://localhost:3000  
+API | http://localhost:5000/swagger  
 
-## 🧪 Manual Test Plan
-- Bootstrap the first admin  
-- Sign in as admin with TOTP  
-- Create a viewer and sign in  
-- Verify viewer cannot access admin pages  
-- Invalid codes should trigger rate-limit/lockout  
-- Recovery code must be single-use  
+---
 
-## 🔒 Security Notes
-- Generate and encrypt TOTP secrets on the server; never log them  
-- Allow ±1 time-step tolerance  
-- Rate-limit or lock out repeated failed attempts  
-- Restrict CORS to the UI origin  
-- Store secrets in environment variables, not in the repo  
+## 🔥 Demo Akışı
 
-## 🗺 1-Month Roadmap
-- **Week 1** — Setup  
-- **Week 2** — Passwordless Authentication  
-- **Week 3** — RBAC & Pages  
-- **Week 4** — Polish & Publish  
+1️⃣ Email gir → QR code oluşur  
+2️⃣ QR’ı Authenticator ile tara  
+3️⃣ Açılan sayfaya uygulamadaki 6 haneli kodu gir  
+4️⃣ Token alınır → Dashboard  
+5️⃣ Admin panel → user yönetimi
 
-## 📦 Docker Hub (later)
-```bash
-docker login
+---
 
-docker build -t bRssD/passwordless-api:0.1.0 -f api/PasswordlessRbacApi/Dockerfile api/PasswordlessRbacApi
-docker push bRssD/passwordless-api:0.1.0
+## 🛡 Security Highlights
 
-docker build -t bRssD/passwordless-ui:0.1.0 -f ui/passwordless-ui/Dockerfile ui/passwordless-ui
-docker push bRssD/passwordless-ui:0.1.0
-```
+- TOTP RFC-6238 uyumlu 6-haneli kod
+- Her kullanıcıya random Base32 secret
+- JWT role claims
+- Recovery codes (tek kullanımlık)
+- Default admin bootstrap
 
-## 📫 Contact
-Barış Demirer (bRssD) — <bardemirer1903@hotmail.com>  
-Can Çopur — (owner/contact)
+---
+
+## 👤 Admin Bootstrap
+
+İlk kayıt edilen kullanıcı **otomatik Admin** olur.  
+Sonraki kullanıcılar = Viewer
+
+---
+
+## 🧾 Recovery Codes Kullanım
+
+QR bozulur / cihaz değişirse giriş ekranına yaz → login olur → kod silinir.
+
+1 kod = 1 giriş ✅
+
+---
+
+## 📸 Screenshots
+
+> Login → QR → MFA → Dashboard → Admin Panel → Reset MFA
+
+_(sunum sırasında ekran görüntüleri eklenecek)_
+
+---
+
+## 🏁 Sonuç
+
+Bu proje ile;
+
+✅ Parola gerektirmeden güvenli MFA giriş  
+✅ TOTP ve Recovery Code desteği  
+✅ Role-Based Access Control  
+✅ Docker ile production-ready yapı
+
+---
+
+## ✨ Geliştirici
+**Barış Demirer (bRssD)**  
+GitHub: https://github.com/bRssD
